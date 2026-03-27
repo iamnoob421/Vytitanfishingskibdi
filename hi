@@ -1,0 +1,98 @@
+-- Titan Fishing Xeno Optimized - Custom (Tự viết bởi Grok - 27/03/2026)
+-- Dành riêng cho Xeno Executor
+
+if getexecutorname and getexecutorname() ~= "Xeno" and getexecutorname() ~= "Xeno Executor" then
+    warn("[Titan Fishing] Script này được tối ưu CHỈ dành cho Xeno Executor.")
+end
+
+local player = game.Players.LocalPlayer
+local getgenv = getgenv or function() return {} end
+getgenv().TitanFish_Xeno = getgenv().TitanFish_Xeno or {enabled = true}
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TitanFishing_XenoGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 260, 0, 240)
+frame.Position = UDim2.new(0.5, -130, 0.5, -120)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+frame.Parent = screenGui
+
+local customName = "Titan Fishing - Xeno Custom"  -- ← Thay tên script ở đây nếu quý vị muốn
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 35)
+title.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+title.Text = customName
+title.TextColor3 = Color3.new(1,1,1)
+title.TextScaled = true
+title.Parent = frame
+
+local function createToggle(name, yPos, default)
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.new(1, -20, 0, 35)
+    toggle.Position = UDim2.new(0, 10, 0, yPos)
+    toggle.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    toggle.Text = name .. ": " .. (default and "ON" or "OFF")
+    toggle.TextColor3 = Color3.new(1,1,1)
+    toggle.TextScaled = true
+    toggle.Parent = frame
+    local enabled = default
+    toggle.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        toggle.Text = name .. ": " .. (enabled and "ON" or "OFF")
+        toggle.BackgroundColor3 = enabled and Color3.fromRGB(0, 160, 0) or Color3.fromRGB(45, 45, 45)
+        getgenv().TitanFish_Xeno[name] = enabled
+    end)
+    getgenv().TitanFish_Xeno[name] = enabled
+    return function() return getgenv().TitanFish_Xeno[name] end
+end
+
+local autoFish = createToggle("Auto Fish", 45, true)
+local autoSell = createToggle("Auto Sell", 90, true)
+local autoSkill = createToggle("Auto Skill", 135, false)
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 70, 0, 28)
+closeBtn.Position = UDim2.new(1, -80, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+closeBtn.Text = "Đóng"
+closeBtn.TextColor3 = Color3.new(1,1,1)
+closeBtn.TextScaled = true
+closeBtn.Parent = frame
+closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+
+task.spawn(function()
+    while task.wait(0.25) do
+        if not getgenv().TitanFish_Xeno.enabled then continue end
+        local character = player.Character
+        if not character then continue end
+        local rod = character:FindFirstChildOfClass("Tool") or player.Backpack:FindFirstChildOfClass("Tool")
+        if rod and rod.Name:lower():find("rod") then
+            if rod.Parent ~= character then rod.Parent = character end
+            if autoFish() then
+                local castRemote = rod:FindFirstChild("Cast") or game.ReplicatedStorage:FindFirstChild("Cast", true)
+                if castRemote then pcall(function() castRemote:FireServer(Vector3.new(0, -120, 0)) end) end
+                for _ = 1, 10 do
+                    local reelRemote = game.ReplicatedStorage:FindFirstChild("Reel", true) or game.ReplicatedStorage:FindFirstChild("Shake", true)
+                    if reelRemote then pcall(function() reelRemote:FireServer() end) end
+                    task.wait(0.06)
+                end
+            end
+            if autoSkill() then
+                local skillRemote = game.ReplicatedStorage:FindFirstChild("UseSkill", true) or game.ReplicatedStorage:FindFirstChild("Skill", true)
+                if skillRemote then pcall(function() skillRemote:FireServer() end) end
+            end
+            if autoSell() then
+                local sellRemote = game.ReplicatedStorage:FindFirstChild("SellFish", true) or game.ReplicatedStorage:FindFirstChild("Sell", true)
+                if sellRemote then pcall(function() sellRemote:FireServer("All") end) end
+            end
+        end
+    end
+end)
+
+print("[Titan Fishing] Xeno Optimized đã chạy.")
